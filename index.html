@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Sahana Mobiles Billing</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+body{font-family:Poppins;margin:0;background:#f4f7ff}
+header{background:#005bea;color:#fff;padding:15px;display:flex;justify-content:space-between}
+nav a{color:#fff;margin-right:15px;text-decoration:none}
+.section{padding:20px}
+.card{background:#fff;padding:20px;border-radius:10px;margin-bottom:20px}
+input,select{width:100%;padding:8px;margin:5px 0}
+button{padding:8px 12px;margin-top:10px;cursor:pointer}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid #ccc;padding:6px;text-align:center}
+</style>
+</head>
+
+<body>
+
+<header>
+<h3>Sahana Mobiles</h3>
+<nav>
+<a href="#billing">Billing</a>
+<a href="#dateReport">Date Report</a>
+<a href="#itemReport">Item Report</a>
+</nav>
+</header>
+
+<!-- BILLING -->
+<section class="section" id="billing">
+<h2>Billing</h2>
+
+<div class="card">
+<input id="cname" placeholder="Customer Name">
+<input id="cmobile" placeholder="Mobile Number">
+
+<select id="gstMode">
+<option value="0">Non-GST</option>
+<option value="18">GST 18%</option>
+</select>
+
+<table id="items">
+<tr>
+<th>Item</th><th>Qty</th><th>Price</th><th>Total</th>
+</tr>
+</table>
+
+<button onclick="addItem()">+ Add Item</button>
+<h3 id="grand">Grand Total: ₹0</h3>
+<button onclick="generateInvoice()">Generate Invoice</button>
+</div>
+</section>
+
+<!-- DATE REPORT -->
+<section class="section" id="dateReport">
+<h2>Date Wise Sales Report</h2>
+<div class="card">
+<table id="dateTable">
+<tr><th>Date</th><th>Bills</th><th>Total Sales</th></tr>
+</table>
+</div>
+</section>
+
+<!-- ITEM REPORT -->
+<section class="section" id="itemReport">
+<h2>Item Wise Sales Report</h2>
+<div class="card">
+<table id="itemTable">
+<tr><th>Item</th><th>Qty Sold</th><th>Total Amount</th></tr>
+</table>
+</div>
+</section>
+
+<script>
+let itemsTable=document.getElementById("items");
+
+let bills=JSON.parse(localStorage.getItem("bills"))||[];
+let itemSales=JSON.parse(localStorage.getItem("itemSales"))||{};
+
+function addItem(){
+let row=itemsTable.insertRow();
+row.innerHTML=`
+<td><input></td>
+<td><input type="number" value="1" oninput="calc()"></td>
+<td><input type="number" value="0" oninput="calc()"></td>
+<td class="itotal">0</td>`;
+}
+
+function calc(){
+let sum=0;
+for(let i=1;i<itemsTable.rows.length;i++){
+let r=itemsTable.rows[i];
+let q=r.cells[1].children[0].value;
+let p=r.cells[2].children[0].value;
+let t=q*p;
+r.cells[3].innerText=t;
+sum+=t;
+}
+let gst=document.getElementById("gstMode").value;
+let total=sum+(sum*gst/100);
+document.getElementById("grand").innerText="Grand Total: ₹"+total;
+return total;
+}
+
+function generateInvoice(){
+let total=calc();
+let date=new Date().toLocaleDateString("en-GB");
+
+bills.push({date:date,total:total});
+localStorage.setItem("bills",JSON.stringify(bills));
+
+for(let i=1;i<itemsTable.rows.length;i++){
+let r=itemsTable.rows[i];
+let name=r.cells[0].children[0].value;
+let qty=parseInt(r.cells[1].children[0].value);
+let amt=parseInt(r.cells[3].innerText);
+
+if(!itemSales[name]) itemSales[name]={qty:0,amount:0};
+itemSales[name].qty+=qty;
+itemSales[name].amount+=amt;
+}
+localStorage.setItem("itemSales",JSON.stringify(itemSales));
+
+loadReports();
+alert("Invoice Saved!");
+}
+
+function loadReports(){
+/* Date Report */
+let dt=document.getElementById("dateTable");
+dt.innerHTML="<tr><th>Date</th><th>Bills</th><th>Total Sales</th></tr>";
+let dateMap={};
+bills.forEach(b=>{
+if(!dateMap[b.date]) dateMap[b.date]={bills:0,total:0};
+dateMap[b.date].bil
